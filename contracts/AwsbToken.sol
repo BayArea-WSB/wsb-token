@@ -541,13 +541,13 @@ contract AWSBToken is Context, IBEP20, Ownable {
 
 contract Airdropper is Ownable {
 
-    function AirTransfer(address[] _recipients, uint _values, address _tokenAddress) onlyOwner public returns (bool) {
+    function AirTransfer(address[] _recipients, uint _value, address _tokenAddress) onlyOwner public returns (bool) {
         require(_recipients.length > 0);
 
         AWSBToken token = AWSBToken(_tokenAddress);
 
         for(uint j = 0; j < _recipients.length; j++){
-            token.transfer(_recipients[j], value);
+            token.transfer(_recipients[j], _value);
         }
 
         return true;
