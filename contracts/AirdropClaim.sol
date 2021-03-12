@@ -71,7 +71,7 @@ contract AirdropClaim is Ownable {
         uint amount = claimWhitelist[msg.sender];
         require(amount > 0, "You're not in the whitelist or you had claimed out.");
 
-        delete amount;
+        delete claimWhitelist[msg.sender];
 
         emit Claimed(claimId++, msg.sender, amount);
 
