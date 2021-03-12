@@ -28,6 +28,9 @@ contract AirdropClaim is Ownable {
     receive () external payable {}
     fallback () external payable {}
 
+    /*
+     * @dev Pull out all balance of token or BNB in this contract. When tokenAddress_ is 0x0, will transfer all BNB to the admin owner.
+     */
     function pullFunds(address tokenAddress_) onlyOwner public {
         if (tokenAddress_ == address(0)) {
             msg.sender.transfer(address(this).balance);
