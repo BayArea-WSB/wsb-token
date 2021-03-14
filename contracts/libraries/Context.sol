@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -18,7 +18,7 @@ contract Context {
   constructor () { }
 
   function _msgSender() internal view returns (address payable) {
-    return msg.sender;
+    return payable(msg.sender);
   }
 
   function _msgData() internal view returns (bytes memory) {
