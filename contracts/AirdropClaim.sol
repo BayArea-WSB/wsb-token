@@ -50,7 +50,6 @@ contract AirdropClaim is Ownable {
     }
 
     function setClaimExpiredAt(uint expireTimestamp_) onlyOwner public {
-        require(expireTimestamp_ > block.timestamp, "The expireTimestamp has passed");
         claimExpiredAt = expireTimestamp_;
     }
 
