@@ -138,6 +138,15 @@ contract FairyTimlock is Adminable {
         return _fairyPalace.contains(fairy_);
     }
 
+    function fairiesCount() public view returns (uint) {
+        return _fairyPalace.length();
+    }
+
+    function fairyAtIndex(uint index) public view returns (address) {
+        require(index < _fairyPalace.length(), "FairyTimelock:: index out of bounds");
+        return _fairyPalace.at(index);
+    }
+
     function setStartTime(uint startTime_) public onlyAdmin {
         startTime = startTime_;
     }
