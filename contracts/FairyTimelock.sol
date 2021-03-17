@@ -42,7 +42,7 @@ contract Adminable {
 
 }
 
-contract FairyTimlock is Adminable {
+contract FairyTimelock is Adminable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint public constant UNLOCK_PERIOD = 7 days;
