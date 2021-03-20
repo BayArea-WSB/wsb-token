@@ -42,80 +42,118 @@ contract Adminable {
 
 }
 
-contract FairyTimelock is Adminable {
+contract FairyTimeLock is Adminable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint public constant UNLOCK_PERIOD = 7 days;
-    uint public constant UNLOCK_AMOUNT = 50 * 10**18;
-    
+    uint public releasedPeriod = 7 days;
+    uint public claimableAmountPerFairPerPeriod = 5 * 10**18;
+
     address public aWSBAddress;
     uint public startTime = 0;
+    uint public nextReleasedTime = 0;
     uint public claimedAmount = 0;
-    uint public maxAmount = 2500 * 10**18;
+//    uint public maxAmount = 2500 * 10**18;
 
+    mapping (address => uint) public fairyVault;
     EnumerableSet.AddressSet private _fairyPalace;
 
     event ComeinFairy(address fairy);
     event ComeoffFairy(address fairy);
+    event Released(address fairy, uint amount);
+    event CleanFairyPalace(address add_, uint amount);
     event Claimed(address fairy, uint amount);
 
     constructor(address admin_, address awsb, uint startTime_) Adminable(admin_) {
         aWSBAddress = awsb;
         startTime = startTime_;
+        nextReleasedTime = startTime_;
     }
     
     /**
      * @dev fairy can claim token by transfer 
      */
     receive () external payable {
-        if (msg.value > 0) {
-
-            // 0.00300 BNB (msg.value) => 300 aWSB (claimTokenAmount)
-            // token decimal must be 18, which equals BNB
-            uint claimTokenAmount = msg.value * 10**5;
-            claim(claimTokenAmount);
-            
-            // send back BNB
-            payable(msg.sender).transfer(msg.value);
-        }
+//        if (msg.value > 0) {
+//
+//            // 0.00300 BNB (msg.value) => 300 aWSB (claimTokenAmount)
+//            // token decimal must be 18, which equals BNB
+//            uint claimTokenAmount = msg.value * 10**5;
+//            claim(claimTokenAmount);
+//
+//            // send back BNB
+//            payable(msg.sender).transfer(msg.value);
+//        }
     }
 
     fallback () external payable {}
 
-    function releasedVault() public view returns (uint valut) {
-        if (block.timestamp < startTime) {
-            return 0;
-        }
-
-        // calculate the valut
-        valut = ((block.timestamp - startTime ) / UNLOCK_PERIOD + 1) * UNLOCK_AMOUNT;
-        if (valut > maxAmount) {
-            valut = maxAmount;
-        }
-    }
     
-    function claimableAmount() public view returns (uint) {
-        return releasedVault() - claimedAmount;
-    }
+    // if it exceed 7 days since last airdrop
+    // record last time of airdrop
+    // calculate how much tokens should be distributed (tokens / person * number of persons).
+    // failed if balance of token is not enough for distribution
+    // save token into each fairy's vault
 
-    function claim(uint amount_) public returns (bool) {
-        require(_fairyPalace.contains(msg.sender), "FairyTimlock: Sorry, you are not in the fairy palace");
+    // transfer token to each fair's account
 
-        require(claimableAmount() >= amount_, "FairyTimlock: claim exceed the released amount");
-
-        claimedAmount = claimedAmount + amount_;
+    function releaseToFairies() public onlyAdmin returns (bool) {
+        require(block.timestamp > startTime, "The contract was not enabled");
+        uint amountPerFair =
+            ((block.timestamp - nextReleasedTime ) / releasedPeriod + 1) * claimableAmountPerFairPerPeriod;
+        require((block.timestamp - nextReleasedTime ) >= 0,
+                 "FairyTimeLock: It is not the time of next round of airdrop ");
+        nextReleasedTime = nextReleasedTime + releasedPeriod;
+        uint totalAmount = amountPerFair * _fairyPalace.length();
 
         IBEP20 aWSB = IBEP20(aWSBAddress);
-        require(aWSB.transfer(msg.sender, amount_), "Token transfer failed");
+        require(totalAmount <= aWSB.balanceOf(address(this)), "FairyTimeLock: Not enough balance");
         
-        emit Claimed(msg.sender, amount_);
+        uint length = _fairyPalace.length();
+        for(uint i = 0; i < length; i++) {
+            address fairyAddr = _fairyPalace.at(i);
+            fairyVault[fairyAddr] = amountPerFair;
+            emit Released(fairyAddr, amountPerFair);
+        }
+
+        return true;
+
+    }
+
+
+//    function releasedVault() public view returns (uint valut) {
+//        if (block.timestamp < startTime) {
+//            return 0;
+//        }
+//
+//        // calculate the valut
+//        valut = ((block.timestamp - startTime ) / UNLOCK_PERIOD + 1) * UNLOCK_AMOUNT;
+//        if (valut > maxAmount) {
+//            valut = maxAmount;
+//        }
+//    }
+    
+    function claimableAmount() public view returns (uint) {
+        IBEP20 aWSB = IBEP20(aWSBAddress);
+        return aWSB.balanceOf(address(this)) - claimedAmount;
+    }
+
+    function claim() public returns (bool) {
+        require(_fairyPalace.contains(msg.sender), "FairyTimeLock: Sorry, you are not in the fairy palace");
+        require(aWSBAddress != address(0), "The token of airdrop is null");
+
+        IBEP20 aWSB = IBEP20(aWSBAddress);
+        uint amount = fairyVault[msg.sender];
+        require(amount > 0, "you had claimed out.");
+
+        require(aWSB.transfer(msg.sender, amount), "Token transfer failed");
+        emit Claimed(msg.sender, amount);
         return true;
     }
 
     function fairiesComein(address[] calldata fairies_) public onlyAdmin returns (bool) {
         
         for (uint i = 0; i < fairies_.length; i++) {
-            require(fairies_[i] != address(0x0), "FairyTimlock:: Can not add 0x0 fairy");
+            require(fairies_[i] != address(0x0), "FairyTimeLock:: Can not add 0x0 fairy");
             _fairyPalace.add(fairies_[i]);
         
             emit ComeinFairy(fairies_[i]);
@@ -126,8 +164,8 @@ contract FairyTimelock is Adminable {
 
     function fairiesComeoff(address[] calldata fairies_) public onlyAdmin returns (bool) {
         for (uint i = 0; i < fairies_.length; i++) {
-            require(_fairyPalace.remove(fairies_[i]), "FairyTimlock:: fairy not exist");
-        
+            require(_fairyPalace.remove(fairies_[i]), "FairyTimeLock:: fairy not exist");
+            delete fairyVault[fairies_[i]];
             emit ComeoffFairy(fairies_[i]);
         }
         
@@ -143,22 +181,22 @@ contract FairyTimelock is Adminable {
     }
 
     function fairyAtIndex(uint index) public view returns (address) {
-        require(index < _fairyPalace.length(), "FairyTimelock:: index out of bounds");
+        require(index < _fairyPalace.length(), "FairyTimeLock:: index out of bounds");
         return _fairyPalace.at(index);
     }
 
     function setStartTime(uint startTime_) public onlyAdmin {
         startTime = startTime_;
+        nextReleasedTime = startTime_;
     }
 
-    function setMaxAmount(uint maxAmount_) public onlyAdmin {
-        maxAmount = maxAmount_;
-    }
-    
     function setTokenAddress(address tokenAddress_) public onlyAdmin {
         aWSBAddress = tokenAddress_;
     }
 
+    function setReleasePeriod(address tokenAddress_) public onlyAdmin {
+        aWSBAddress = tokenAddress_;
+    }
     /*
      * @dev Pull out all balance of token or BNB in this contract. When tokenAddress_ is 0x0, will transfer all BNB to the admin owner.
      */
@@ -170,4 +208,23 @@ contract FairyTimelock is Adminable {
             token.transfer(msg.sender, token.balanceOf(address(this)));
         }
     }
+
+    /**
+     * @dev clean the whitelist
+     */
+    function cleanFairPalace() onlyAdmin public returns (bool) {
+        uint length = _fairyPalace.length();
+        for(uint i = 0; i < length; i++) {
+            address key = _fairyPalace.at(0);
+
+            emit CleanFairyPalace(key, fairyVault[key]);
+
+            delete fairyVault[key];
+            _fairyPalace.remove(key);
+        }
+
+        require(_fairyPalace.length() == 0);
+        return true;
+    }
+
 }
