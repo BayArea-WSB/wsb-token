@@ -52,7 +52,6 @@ contract FairyTimeLock is Adminable {
     uint public startTime = 0;
     uint public nextReleasedTime = 0;
     uint public claimedAmount = 0;
-//    uint public maxAmount = 2500 * 10**18;
 
     mapping (address => uint) public fairyVault;
     EnumerableSet.AddressSet private _fairyPalace;
@@ -88,14 +87,6 @@ contract FairyTimeLock is Adminable {
     fallback () external payable {}
 
     
-    // if it exceed 7 days since last airdrop
-    // record last time of airdrop
-    // calculate how much tokens should be distributed (tokens / person * number of persons).
-    // failed if balance of token is not enough for distribution
-    // save token into each fairy's vault
-
-    // transfer token to each fair's account
-
     function releaseToFairies() public onlyAdmin returns (bool) {
         require(block.timestamp > startTime, "The contract was not enabled");
         uint amountPerFair =
@@ -210,7 +201,7 @@ contract FairyTimeLock is Adminable {
     }
 
     /**
-     * @dev clean the whitelist
+     * @dev clean the fairy palace
      */
     function cleanFairPalace() onlyAdmin public returns (bool) {
         uint length = _fairyPalace.length();
