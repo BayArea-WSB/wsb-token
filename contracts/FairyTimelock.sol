@@ -137,6 +137,9 @@ contract FairyTimeLock is Adminable {
         require(amount > 0, "you had claimed out.");
 
         require(aWSB.transfer(msg.sender, amount), "Token transfer failed");
+        claimedAmount = claimedAmount + amount;
+
+
         emit Claimed(msg.sender, amount);
         return true;
     }
