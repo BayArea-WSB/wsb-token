@@ -111,18 +111,6 @@ contract FairyTimeLock is Adminable {
     }
 
 
-//    function releasedVault() public view returns (uint valut) {
-//        if (block.timestamp < startTime) {
-//            return 0;
-//        }
-//
-//        // calculate the valut
-//        valut = ((block.timestamp - startTime ) / UNLOCK_PERIOD + 1) * UNLOCK_AMOUNT;
-//        if (valut > maxAmount) {
-//            valut = maxAmount;
-//        }
-//    }
-    
     function claimableAmount() public view returns (uint) {
         IBEP20 aWSB = IBEP20(aWSBAddress);
         return aWSB.balanceOf(address(this)) - claimedAmount;
@@ -138,7 +126,7 @@ contract FairyTimeLock is Adminable {
 
         require(aWSB.transfer(msg.sender, amount), "Token transfer failed");
         claimedAmount = claimedAmount + amount;
-
+        fairyVault[msg.sender] = 0；
 
         emit Claimed(msg.sender, amount);
         return true;
@@ -188,9 +176,15 @@ contract FairyTimeLock is Adminable {
         aWSBAddress = tokenAddress_;
     }
 
-    function setReleasePeriod(address tokenAddress_) public onlyAdmin {
-        aWSBAddress = tokenAddress_;
+    function setReleasePeriod(uint releasedPeriod_) public onlyAdmin {
+        releasedPeriod = releasedPeriod_;
     }
+
+    function setClaimableAmountPerFairPerPeriod(unit newAmount_) public onlyAdmin {
+
+        claimableAmountPerFairPerPeriod = newAmount_;
+    }
+
     /*
      * @dev Pull out all balance of token or BNB in this contract. When tokenAddress_ is 0x0, will transfer all BNB to the admin owner.
      */
