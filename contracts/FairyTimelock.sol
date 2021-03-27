@@ -126,7 +126,7 @@ contract FairyTimeLock is Adminable {
 
         require(aWSB.transfer(msg.sender, amount), "Token transfer failed");
         claimedAmount = claimedAmount + amount;
-        fairyVault[msg.sender] = 0；
+        fairyVault[msg.sender] = 0;
 
         emit Claimed(msg.sender, amount);
         return true;
@@ -180,8 +180,7 @@ contract FairyTimeLock is Adminable {
         releasedPeriod = releasedPeriod_;
     }
 
-    function setClaimableAmountPerFairPerPeriod(unit newAmount_) public onlyAdmin {
-
+    function setClaimableAmountPerFairPerPeriod(uint newAmount_) public onlyAdmin {
         claimableAmountPerFairPerPeriod = newAmount_;
     }
 
